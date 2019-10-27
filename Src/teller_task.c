@@ -29,18 +29,30 @@ void teller_task(void *parameters)
 
   while(1) {
     
+    USART_Printf("Hit teller %d\r\n", p->id);
+    
     //Remove a customer from the queue, if not customer, don't block
-    xQueueReceive(CustomerQueueHandle, &customer, 0);
+    BaseType_t success = xQueueReceive(CustomerQueueHandle, &customer, 0);
+    
+    //Check if customer was successfully retrieved from queue
+    if(!success){
+      //try again if not successful, (queue was empty?)
+      vTaskDelay(1000);
+      continue;
+    }
+    
+    USART_Printf("Teller %s received customer %d from queue\r\n", p->task_name, customer.id);
+    
+    
+    
     //Mark when the customer was pulled from the queue
     customer.timeExitedQueue = xTaskGetTickCount();
     
     //service the customer for 30 seconds to 8 minutes
-    
-    //Leftover from LED_TASK
-    HAL_RNG_GenerateRandomNumber(&hrng, &wait_ms);
-    wait_ms = p->base_ms + (wait_ms % p->max_jitter_ms);  // 1000-1256
-    USART_Printf("Teller %s was hit after %d\r\n", p->task_name, wait_ms);
+    HAL_RNG_GenerateRandomNumber(&hrng, &wait_ms);//generate the random number
+    wait_ms = ((wait_ms % 750) + 50);//set it to between 50 and 800 (30 seconds to 8 minutes)
     vTaskDelay(wait_ms);
+    
   }
 }
 
@@ -54,12 +66,10 @@ inputs
 outputs
   none
 *******************************************/
-void teller_task_init(int id, char *task_name, int base_ms, int max_jitter_ms)
+void teller_task_init(int id, char *task_name)
 {
   TELLER_PARAMS_t *p = &teller_params[id];   // get pointer to THIS instance of parameters (one for each task)
   p->id = id;                           // initialize members of this structure for this task
-  p->base_ms = base_ms;
-  p->max_jitter_ms = max_jitter_ms;
   strncpy(p->task_name, task_name, configMAX_TASK_NAME_LEN);
-  xTaskCreate( teller_task, "teller TASK2", 256, (void *)p, 2, &p->handle); // go ahead and create the task 
+  xTaskCreate( teller_task, task_name, 256, (void *)p, 2, &p->handle); // go ahead and create the task 
 }
