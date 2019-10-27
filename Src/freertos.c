@@ -53,6 +53,7 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
+#include "customerStruct.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
@@ -80,6 +81,7 @@
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 osMessageQId CustomerQueueHandle;
+osMessageQId MessageQueueHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -123,8 +125,11 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the queue(s) */
   /* definition and creation of CustomerQueue */
-  osMessageQDef(CustomerQueue, 64, 8);
-  CustomerQueueHandle = osMessageCreate(osMessageQ(CustomerQueue), NULL);
+  CustomerQueueHandle = xQueueCreate(20, sizeof(CustomerStruct_t));
+
+  /* definition and creation of MessageQueue */
+  MessageQueueHandle = xQueueCreate(5, 100);
+
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */

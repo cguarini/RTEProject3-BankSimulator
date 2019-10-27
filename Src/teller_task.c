@@ -6,8 +6,10 @@
 #include "string.h"
 #include "queue.h"
 #include "customerStruct.h"
+#include "stdio.h"
 
 extern osMessageQId CustomerQueueHandle;
+extern osMessageQId MessageQueueHandle;
 TELLER_PARAMS_t teller_params[3]; // defined here, allocated in led_task.c
 
 
@@ -25,23 +27,23 @@ void teller_task(void *parameters)
   TELLER_PARAMS_t *p = (TELLER_PARAMS_t *)parameters;
   
   CustomerStruct_t customer;
+  char str[100];
   
 
   while(1) {
     
-    USART_Printf("Hit teller %d\r\n", p->id);
-    
     //Remove a customer from the queue, if not customer, don't block
-    BaseType_t success = xQueueReceive(CustomerQueueHandle, &customer, 0);
+    BaseType_t success = xQueueReceive(CustomerQueueHandle, &customer, 20);
     
     //Check if customer was successfully retrieved from queue
     if(!success){
       //try again if not successful, (queue was empty?)
-      vTaskDelay(1000);
+      vTaskDelay(10);
       continue;
     }
     
-    USART_Printf("Teller %s received customer %d from queue\r\n", p->task_name, customer.id);
+    sprintf(str, "Teller %s received customer %d from queue\r\n", p->task_name, customer.id);
+    xQueueSend(MessageQueueHandle, &str, 0);
     
     
     

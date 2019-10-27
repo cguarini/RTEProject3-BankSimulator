@@ -60,6 +60,7 @@
 #include "led_task.h"           // needed for led_task_init
 #include "teller_task.h"
 #include "customer_task.h"
+#include "print_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -134,6 +135,8 @@ int main(void)
   teller_task_init(0, "TELLER_TASK_0");
   teller_task_init(1, "TELLER_TASK_1");
   teller_task_init(2, "TELLER_TASK_2");
+  print_task_init(0, "PRINT_TASK_0");
+
 
   
   // USART_Printf is printf() customized to this platform and uses a variable argugment list.

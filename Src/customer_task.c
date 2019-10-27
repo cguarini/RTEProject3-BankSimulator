@@ -4,12 +4,14 @@
 #include "rng.h"
 #include "usart.h"
 #include "customerStruct.h"
+#include "stdio.h"
 
 #include "string.h"
 
 TaskHandle_t customer_handle = NULL;
 TaskHandle_t teller_handle = NULL;
 extern osMessageQId CustomerQueueHandle;
+extern osMessageQId MessageQueueHandle;
 
 
 void customer_data_task(void *parameters)
@@ -23,31 +25,30 @@ void customer_data_task(void *parameters)
 
 	
 
-for(int i=0; i < 10; i++){	
+  for(;;){	
 
     CustomerStruct_t customer;
+    char str[100];
 
     // To create a random delay for the customer arrival:
 		
-  /*
+  
     HAL_RNG_GenerateRandomNumber(&hrng, &delay_ms);
-		delay_ms = 100 + (delay_ms % 300);  
-		USART_Printf("Customer will arrive in % 4d milli seconds\r\n", delay_ms);
+		delay_ms = 100 + (delay_ms % 300); 
     vTaskDelay(delay_ms);
-		val = xTaskGetTickCount( );
-		USART_Printf("Tick Count : %ld \r\n", val);
-		*/
+		
 		customer.id = i;
 		customer.timeEnteredQueue = val;
     customer.timeExitedQueue = 0;
-    USART_Printf("Placing Customer %d in queue\r\n", customer.id);
-    vTaskDelay(1000);
-    BaseType_t success = xQueueSend( CustomerQueueHandle, &customer, 0 );
+    sprintf(str, "Placing Customer %d in queue\r\n", customer.id);
+    xQueueSend(MessageQueueHandle, &str, 0);
+    BaseType_t success = xQueueSend( CustomerQueueHandle, &customer, 20 );
     if(!success){
-      USART_Printf("Unable to place Customer %d in queue\r\n", customer.id);
+      sprintf(str, "Unable to place Customer %d in queue\r\n", customer.id);
+      xQueueSend(MessageQueueHandle, &str, 0);
     }
 
-		
+		i++;
   }
 }
 
