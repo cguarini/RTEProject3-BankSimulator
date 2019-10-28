@@ -9,6 +9,27 @@ typedef struct {
   char task_name[16];
 } TELLER_PARAMS_t;
 
+//Reports statistics from the tellers
+typedef struct {
+	
+	uint32_t customersServed;
+	uint32_t customersServedByTeller[3];
+	uint32_t totalTimeInQueue;
+	uint32_t totalTimeWithTellers;
+	uint32_t totalTimeWaitingForCustomer;
+	uint32_t maximumTimeInQueue;
+	uint32_t maximumTimeWaitingForCustomer;
+	uint32_t maximumTransactionTime;
+	uint32_t maximumDepthOfQueue;
+	
+	//Grad requirements
+	uint32_t numberOfBreaksByTeller[3];
+	uint32_t totalBreakTime[3];
+	uint32_t longestBreakTime[3];
+	uint32_t shortestBreakTime[3];
+	
+} REPORT_STRUCT_t;
+
 void teller_task(void *parameters);
 void teller_task_init(int id, char *task_name);
 

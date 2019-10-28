@@ -13,6 +13,7 @@ TaskHandle_t customer_handle = NULL;
 TaskHandle_t teller_handle = NULL;
 extern osMessageQId CustomerQueueHandle;
 extern osMessageQId MessageQueueHandle;
+uint8_t bankClosedFlag = 0;
 
 
 void customer_data_task(void *parameters)
@@ -65,6 +66,8 @@ void customer_data_task(void *parameters)
 	char str[100];
 	sprintf(str, "----------End of Day, no more customers may enter the bank.----------\r\n");
 	xQueueSend(MessageQueueHandle, &str, 20);
+	
+	bankClosedFlag = 1;
 
 	//Delete the customer task
 	vTaskDelete(customer_handle);

@@ -8,5 +8,7 @@ typedef struct {
   uint32_t timeEnteredQueue;
   //Time the customer left the queue
   uint32_t timeExitedQueue;
+	//Maximum depth of the queue when the customer entered it
+	uint32_t maximumDepthOfQueue;
   
 } CustomerStruct_t;
