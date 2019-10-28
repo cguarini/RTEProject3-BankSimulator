@@ -5,6 +5,7 @@
 #include "usart.h"
 #include "customerStruct.h"
 #include "stdio.h"
+#include "clock.h"
 
 #include "string.h"
 
@@ -19,7 +20,6 @@ void customer_data_task(void *parameters)
 	int i = 0;
   uint32_t delay_ms;
 
-	TickType_t val;
   
   CustomerStruct_t customer;
 
@@ -29,27 +29,49 @@ void customer_data_task(void *parameters)
 
     CustomerStruct_t customer;
     char str[100];
-
-    // To create a random delay for the customer arrival:
 		
-  
+		
+		uint32_t time = xTaskGetTickCount();
+		//After 4:00, everyone go home
+		if(time > END_TIME){
+			break;
+		}
+		
+
+    //create a random delay for the customer arrival:
     HAL_RNG_GenerateRandomNumber(&hrng, &delay_ms);
 		delay_ms = 100 + (delay_ms % 300); 
     vTaskDelay(delay_ms);
 		
+		//Get the time string
+		char timeStr[10];
+		getTimeString(timeStr, time);
+    
 		customer.id = i;
-		customer.timeEnteredQueue = val;
+		customer.timeEnteredQueue = time;
     customer.timeExitedQueue = 0;
-    sprintf(str, "Placing Customer %d in queue\r\n", customer.id);
+    sprintf(str, "%s - Placing Customer %d in queue\r\n", timeStr, customer.id);
     xQueueSend(MessageQueueHandle, &str, 0);
     BaseType_t success = xQueueSend( CustomerQueueHandle, &customer, 20 );
     if(!success){
-      sprintf(str, "Unable to place Customer %d in queue\r\n", customer.id);
+      sprintf(str, "%s - Unable to place Customer %d in queue\r\n", timeStr, customer.id);
       xQueueSend(MessageQueueHandle, &str, 0);
     }
 
 		i++;
   }
+	
+	//Loop is broken, end of day.
+	char str[100];
+	sprintf(str, "----------End of Day, no more customers may enter the bank.----------\r\n");
+	xQueueSend(MessageQueueHandle, &str, 20);
+
+	//Delete the customer task
+	vTaskDelete(customer_handle);
+	
+	//NEVER RETURN
+	while(1);
+	
 }
 
 void customer_task_init()

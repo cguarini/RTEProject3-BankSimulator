@@ -7,6 +7,7 @@
 #include "queue.h"
 #include "customerStruct.h"
 #include "stdio.h"
+#include "clock.h"
 
 extern osMessageQId CustomerQueueHandle;
 extern osMessageQId MessageQueueHandle;
@@ -28,27 +29,53 @@ void teller_task(void *parameters)
   
   CustomerStruct_t customer;
   char str[100];
+	
+	//Generate initial break time
+	HAL_RNG_GenerateRandomNumber(&hrng, &wait_ms);
+	uint32_t breakStartTime = xTaskGetTickCount() + (wait_ms % 30) + 30;
+	uint32_t breakLength = (wait_ms % 3) + 1;
   
 
   while(1) {
+		//Get the start time of this loop
+		char timeStr[10];
+		uint32_t time = xTaskGetTickCount();
+		getTimeString(timeStr, time);
+		
+		//Break Logic
+		if(breakStartTime < time){
+			//go on break
+			sprintf(str, "%s - Teller %d is going on break for %d minutes\r\n", timeStr, p->id, breakLength);
+			xQueueSend(MessageQueueHandle, &str, 0);
+			vTaskDelay(breakLength);
+			
+			//generate new break time
+			HAL_RNG_GenerateRandomNumber(&hrng, &wait_ms);
+			breakStartTime = xTaskGetTickCount() + (wait_ms % 30) + 30;
+			breakLength = (wait_ms % 3) + 1;
+		}
     
     //Remove a customer from the queue, if not customer, don't block
     BaseType_t success = xQueueReceive(CustomerQueueHandle, &customer, 20);
     
     //Check if customer was successfully retrieved from queue
     if(!success){
+			
+			if(time > END_TIME){
+				//End of day and no customers are in the queue
+				break;
+			}
+			
       //try again if not successful, (queue was empty?)
       vTaskDelay(10);
       continue;
     }
     
-    sprintf(str, "Teller %s received customer %d from queue\r\n", p->task_name, customer.id);
+    sprintf(str, "%s - Teller %d received customer %d from queue.\r\n",timeStr, p->id, customer.id);
     xQueueSend(MessageQueueHandle, &str, 0);
     
-    
-    
     //Mark when the customer was pulled from the queue
-    customer.timeExitedQueue = xTaskGetTickCount();
+    customer.timeExitedQueue = time;
     
     //service the customer for 30 seconds to 8 minutes
     HAL_RNG_GenerateRandomNumber(&hrng, &wait_ms);//generate the random number
@@ -56,6 +83,21 @@ void teller_task(void *parameters)
     vTaskDelay(wait_ms);
     
   }
+	
+	//Get the start time of this loop
+	char timeStr[6];
+	uint32_t time = xTaskGetTickCount();
+	getTimeString(timeStr, time);
+	
+	sprintf(str, "%s - Teller %s is out of customers and going home.\r\n",timeStr, p->task_name);
+  xQueueSend(MessageQueueHandle, &str, 20);
+	
+	
+	//Never return
+	while(1){
+		vTaskDelay(1000);
+	}
+	
 }
 
 /*****************************************

@@ -128,7 +128,7 @@ void MX_FREERTOS_Init(void) {
   CustomerQueueHandle = xQueueCreate(20, sizeof(CustomerStruct_t));
 
   /* definition and creation of MessageQueue */
-  MessageQueueHandle = xQueueCreate(5, 100);
+  MessageQueueHandle = xQueueCreate(6, 100);
 
 
   /* USER CODE BEGIN RTOS_QUEUES */
