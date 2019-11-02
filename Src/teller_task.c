@@ -9,6 +9,8 @@
 #include "stdio.h"
 #include "clock.h"
 
+#define BREAKS_ENABLED (1)
+
 extern osMessageQId CustomerQueueHandle;
 extern osMessageQId MessageQueueHandle;
 extern uint8_t bankClosedFlag;
@@ -41,6 +43,11 @@ void endOfDayReport(){
 	//print average time customer spends with teller
 	sprintf(str,"\tAverage time spent with tellers: %d\r\n", report.totalTimeWithTellers / report.customersServed);
 	xQueueSend(MessageQueueHandle, &str, 200);
+  
+  //print average time tellers wait for customers
+	sprintf(str,"\tAverage time tellers wait for customers: %d\r\n", report.totalTimeWaitingForCustomer / report.customersServed);
+	xQueueSend(MessageQueueHandle, &str, 200);
+  
 	
 	//print maximum customer wait time in queue
 	sprintf(str,"\tMaximum customer queue wait time: %d\r\n", report.maximumTimeInQueue);
@@ -59,35 +66,36 @@ void endOfDayReport(){
 	xQueueSend(MessageQueueHandle, &str, 200);
 	
 	//Grad Student Metrics
-	
-	//print number of breaks for each teller
-	for(int i = 0; i < 3; i++){
-		sprintf(str,"\tNumber of breaks for teller %d: %d\r\n",
-			i, report.numberOfBreaksByTeller[i]);
-		xQueueSend(MessageQueueHandle, &str, 200);
-	}
-	
-	//print average break time for each teller
-	for(int i = 0; i < 3; i++){
-		sprintf(str,"\tAverage break time for teller %d: %d\r\n",
-			i, report.totalBreakTime[i] / report.numberOfBreaksByTeller[i]);
-		xQueueSend(MessageQueueHandle, &str, 200);
-	}
-		
-	//print longest break time for each teller
-	for(int i = 0; i < 3; i++){
-		sprintf(str,"\tLongest break for teller %d: %d\r\n",
-			i, report.longestBreakTime[i]);
-		xQueueSend(MessageQueueHandle, &str, 200);
-	}
-	
-	//print shortest break time for each teller
-		//print longest break time for each teller
-	for(int i = 0; i < 3; i++){
-		sprintf(str,"\tShortest break for teller %d: %d\r\n",
-			i, report.shortestBreakTime[i]);
-		xQueueSend(MessageQueueHandle, &str, 200);
-	}
+	if(BREAKS_ENABLED){
+    //print number of breaks for each teller
+    for(int i = 0; i < 3; i++){
+      sprintf(str,"\tNumber of breaks for teller %d: %d\r\n",
+        i, report.numberOfBreaksByTeller[i]);
+      xQueueSend(MessageQueueHandle, &str, 200);
+    }
+    
+    //print average break time for each teller
+    for(int i = 0; i < 3; i++){
+      sprintf(str,"\tAverage break time for teller %d: %d\r\n",
+        i, report.totalBreakTime[i] / report.numberOfBreaksByTeller[i]);
+      xQueueSend(MessageQueueHandle, &str, 200);
+    }
+      
+    //print longest break time for each teller
+    for(int i = 0; i < 3; i++){
+      sprintf(str,"\tLongest break for teller %d: %d\r\n",
+        i, report.longestBreakTime[i]);
+      xQueueSend(MessageQueueHandle, &str, 200);
+    }
+    
+    //print shortest break time for each teller
+      //print longest break time for each teller
+    for(int i = 0; i < 3; i++){
+      sprintf(str,"\tShortest break for teller %d: %d\r\n",
+        i, report.shortestBreakTime[i]);
+      xQueueSend(MessageQueueHandle, &str, 200);
+    }
+  }
 }
 
 /*****************************************
@@ -121,10 +129,10 @@ void teller_task(void *parameters)
 		getTimeString(timeStr, time);
 		
 		//Break Logic
-		if(breakStartTime < time){
+		if(BREAKS_ENABLED && breakStartTime < time){
 			//go on break
 			sprintf(str, "%s - Teller %d is going on break for %d minutes\r\n", timeStr, p->id, breakLength/100);
-			xQueueSend(MessageQueueHandle, &str, 0);
+			xQueueSend(MessageQueueHandle, &str, 200);
 			
 			//Report the break
 			report.numberOfBreaksByTeller[p->id]++;
@@ -139,11 +147,13 @@ void teller_task(void *parameters)
 			HAL_RNG_GenerateRandomNumber(&hrng, &wait_ms);
 			breakStartTime = time + ((wait_ms % 3000) + 3000);
 			breakLength = (wait_ms % 300) + 100;
+      continue;
 		}
     
     //Remove a customer from the queue, if not customer, don't block
-    BaseType_t success = xQueueReceive(CustomerQueueHandle, &customer, 20);
-    
+    BaseType_t success = xQueueReceive(CustomerQueueHandle, &customer, 200);
+    time = xTaskGetTickCount();//Time the customer is retrieved from the queue
+
     //Check if customer was successfully retrieved from queue
     if(!success){
 			
@@ -164,7 +174,7 @@ void teller_task(void *parameters)
 		
 		timeWaitingForCustomer = 0;
     sprintf(str, "%s - Teller %d received customer %d from queue.\r\n",timeStr, p->id, customer.id);
-    xQueueSend(MessageQueueHandle, &str, 0);
+    xQueueSend(MessageQueueHandle, &str, 200);
     
     //Mark when the customer was pulled from the queue
     customer.timeExitedQueue = time;
@@ -186,7 +196,8 @@ void teller_task(void *parameters)
 			report.maximumTransactionTime = wait_ms : report.maximumTransactionTime;
 		report.maximumDepthOfQueue < customer.maximumDepthOfQueue ?
 			report.maximumDepthOfQueue = customer.maximumDepthOfQueue : report.maximumDepthOfQueue;
-		
+      
+		//Service the customer
 		vTaskDelay(wait_ms);
     
   }
@@ -197,7 +208,7 @@ void teller_task(void *parameters)
 	getTimeString(timeStr, time);
 	
 	sprintf(str, "%s - Teller %s is out of customers and going home.\r\n",timeStr, p->task_name);
-  xQueueSend(MessageQueueHandle, &str, 20);
+  xQueueSend(MessageQueueHandle, &str, 200);
 	
 	tellersComplete++;
 	//run the end of day report if teller is last one standing.

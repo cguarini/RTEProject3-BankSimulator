@@ -141,7 +141,7 @@ int main(void)
   
   // USART_Printf is printf() customized to this platform and uses a variable argugment list.
   // It is convenient but unnecessary.  You can use HAL functions (e.g. HAL_USART_Transmit())
-  USART_Printf("System initialized, starting FreeRTOS\r\n");
+  USART_Printf("----------BANK IS OPEN FOR BUSINESS, BEGIN DAY----------\r\n");
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */

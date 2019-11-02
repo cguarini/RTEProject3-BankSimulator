@@ -21,11 +21,6 @@ void customer_data_task(void *parameters)
 	int i = 0;
   uint32_t delay_ms;
 
-  
-  CustomerStruct_t customer;
-
-	
-
   for(;;){	
 
     CustomerStruct_t customer;
@@ -51,8 +46,9 @@ void customer_data_task(void *parameters)
 		customer.id = i;
 		customer.timeEnteredQueue = time;
     customer.timeExitedQueue = 0;
+    customer.maximumDepthOfQueue = (uxQueueMessagesWaiting(CustomerQueueHandle) + 1);
     sprintf(str, "%s - Placing Customer %d in queue\r\n", timeStr, customer.id);
-    xQueueSend(MessageQueueHandle, &str, 0);
+    xQueueSend(MessageQueueHandle, &str, 200);
     BaseType_t success = xQueueSend( CustomerQueueHandle, &customer, 20 );
     if(!success){
       sprintf(str, "%s - Unable to place Customer %d in queue\r\n", timeStr, customer.id);
